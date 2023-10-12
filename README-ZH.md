@@ -1,21 +1,21 @@
-# make dartpad run complete local
-[中文](README-ZH.md)
+本篇文章描述使 [DartPad](https://dartpad.dev/) 可以在本地运行。
+
+TLDR：如果想运行 [dartpad-local](https://github.com/frankfancode/dartpad-local) 可以直接跳到 [使用dartpad-local](#使用dartpad-local) 小节 
 
 
-TLDR: If you want to run dartpad-local, you can directly go to the section 
-[Using dartpad-local](#Using-dartpad-local)
+```
 
-The official DartPad source code does not support complete offline usage. Therefore, we need to modify some source code, mainly by changing the host address and placing external resources locally.
-Let's begin.
-
-
-First, clone the DartPad code:
+官方现有 [DartPad源码](https://github.com/dart-lang/dart-pad)不支持完全的离线使用，所以我们需要修改一些源码，主要是改 host 地址，把外部资源放到本地。
+下面开始。
+## 准备代码
+首先把 dartpad 的代码克隆下来
 
 ```bash
 git clone https://github.com/dart-lang/dart-pad.git
 ```
 
-Look at the directory structure:
+
+查看下目录结构
 
 ```bash
 tree -L 2
@@ -34,26 +34,20 @@ tree -L 2
 
 ```
 
+本地化 DartPad 主要是修改 `dart-pad/pkgs/dart_pad` 和 `dart-pad/pkgs/dart_service`。
+`dart_pad` 是 前端页面，用于展示代码和预览代码的运行效果。
+`dart_service` 是服务器用于接收、运行前端上传的代码，以及返回运行结果。
+可以参考官方的开发文档 [CONTRIBUTING.md](https://github.com/dart-lang/dart-pad/blob/main/CONTRIBUTING.md) 看下如何运行。
 
-
-To localize DartPad, we mainly need to modify dart-pad/pkgs/dart_pad and dart-pad/pkgs/dart_service.
-
-dart_pad is the frontend to display and preview the code, 
-
-dart_service is the backend to receive and run the code uploaded from the frontend and return the execution results.
-
-You can refer to the official development documentation [CONTRIBUTING.md](https://github.com/dart-lang/dart-pad/blob/main/CONTRIBUTING.md) to see how to run it.
-
-Go to the dart_pad directory and start the unmodified DartPad page:
+进入 `dart_pad`  目录启动尚未修改的 dartpad 页面
 
 ```
 $ dart pub get
 $ dart ./tool/grind.dart serve
 ```
 > 
-> **Important Note: Each execution of dart `./tool/grind.dart serve` will trigger an internal build command that re-downloads and rebuilds the code. This is not .**
-> You can add a run method in `grind.dart` and then just execute `dart ./tool/grind.dart run`.
-> 
+> **重点提醒：每次执行 `dart ./tool/grind.dart serve` 都会触发内部的构建命令，会重新下载代码并重新构建，这不是必须的**
+> 可以通过在 `grind.dart` 另外添加一个方法 `run`，之后只执行 `dart ./tool/grind.dart run`
 
 
 ```dart
@@ -71,7 +65,7 @@ Future<void> run() async {
 ```
 
 
-After a few seconds, we will see the following output in the terminal, indicating that the DartPad frontend is now running locally:
+经过数秒后应该会在终端中看到 如下结果，说明 dartpad 的前端部分已经在本地运行起来了
 
 ``` 
 ...
@@ -86,7 +80,7 @@ finished in 42.2 seconds
 Serving at http://localhost:8000
 ```
 
-Open `http://localhost:8000` and you will see the interface below. The default page is Dart, you can try switching to the Flutter page by modifying sample. The processing and preview of Flutter programs is more complex than Dart programs.
+打开 `http://localhost:8000` 界面如下。默认页面是 Dart 的，可以尝试修改 `sample` 切换成 Flutter 页面。Flutter 程序的处理和预览机制 比 Dart 程序的处理预览机器更复杂。
 
 
 | dart                                |  flutter                             |
@@ -95,24 +89,21 @@ Open `http://localhost:8000` and you will see the interface below. The default p
 
 
  
-Although you can see DartPad running locally by opening `http://localhost:8000`, many resources are still fetched over the network. You can see these in console:
+ 虽然通过打开 `http://localhost:8000` 可以看到 DartPad 运行在本地，但是还有很多资源是通过网络获取的。这些可以通过打开调试器看到
  ![](attachment/1fcbc091d7521012cae6f85c5118006d.png)
 
-You can see that many resources are fetched from the internet. The internet resources required for just Dart functionality and Flutter functionality are different. Let's first make Dart completely offline.
+可以看到有很多资源是从互联网获取的，仅使用Dart功能和使用Flutter功能获取的互联网资源是不同的，我们先把 Dart 进行完全离线化
 
-
-## Localize Dart
-
-### Remove google analytics
-
-First, analytics are useless for a localized version, so we can remove them.
-Search and delete the following code:
+## 本地化 Dart
+### 去掉 google analytics
+首先统计功能对于本地化版本是无用的，我们可以把统计功能去掉。
+搜索以下代码并删掉
 
 ```html
 <script src="scripts/ga.js" defer></script>
 ```
 
-I deleted the references to ga in these files:
+我是把以下文件中对 ga 的引用删除了
 
 ```
 pkgs/dart_pad/test/embed/embed_test.html      |   1 -
@@ -125,35 +116,36 @@ pkgs/dart_pad/web/index.html
 ```
 
 
-Restart the Dartpad service and look at the dev console again. There are no more requests to google analytics.
-(If there is no effect, delete the build directory and force refresh the browser or switch new browsers.)
-
+重新启动 Darpad 服务再看一下dev console 已经没有对 google analytics 的请求了。
+（如果没有效果请 删掉 build 目录并且强制刷新下 浏览器或者换个浏览器。）
 ![](attachment/0db923e18710d63611554a186ee43d8c.png)
 
-### Use a local DartService server 
-
-From the dev console we can see that the backend server uses `api.dartpad.dev`.
-We change the command so that dartpad can point to the local server:
+### 使用本地服务器  DartService 
+通过 dev console 我们可以看到后台服务器使用是 `api.dartpad.dev`
+我们换个命令使得 dartpad 可以指向本地服务器
 
 ```
-In the dart-pad/pkgs/dart_pad directory, run this command
+在 dart-pad/pkgs/dart_pad 目录下执行
 $ dart ./tool/grind.dart serve-local-backend
 ```
-This command can be found in `dart-pad/pkgs/dart_pad/tool/grind.dart`.
-In the Dev Console we can see that the DartPad server is now changed to `127.0.0.1` and `localhost`. And the port for the `compileDDC` request is `8082`. So our DartService also needs to provide service on port `8082`.
 
-
+这个命令可以从 `dart-pad/pkgs/dart_pad/tool/grind.dart` 找到。
+在 Dev Console 中可以看到 DartPad 指向的服务器变成了 `127.0.0.1` 和 `localhost`。
+并且 `compileDDC` 请求的地址的端口为 `8082`。
+所以我们启动的 DartService 也需要在 8082 端口提供服务。
 ![](attachment/288113d8a3b15b94e4594da37a5fea33.png)
 ![](attachment/7fe773eeea8c921918d9285387951dad.png)
-Next we start `dart_services`
+接下来我们来启动 `dart_services`
 
 ```bash
 cd dart-pad/pkgs/dart_services
 dart pub get
-# this step requires good network and is time consuming
+# 这一步骤需要有好网络，而且比较耗时
 FLUTTER_CHANNEL="stable" dart tool/grind.dart serve
 ```
-After a long wait, you can see the following output indicating that the dart_service has started and is listening on port `8082`
+
+经过漫长的等待后可以看到如下输出，说明 dart_service 服务启动了并且监听端口是 `8082`
+
 ```
 .....
 serve
@@ -172,22 +164,23 @@ serve
   [info] Listening on port 8082
 ```
 
-Open `http://localhost:8000/` and you can see it is now processed by the local server:
+打开 `http://localhost:8000/` 后看到已经是通过本地的服务器进行处理了
 ![](attachment/e4814c6b9002cd5f68bd6beb5fd6685f.png)
 
-Disconnect the network and test if it really works offline.
-It functions normally but the page layout is messed up. Looking at the console shows that the font packages were not downloaded.
+把网络断掉试一下看看是否真离线
+虽然功能正常，但页面乱掉了，通过看控制台可以发现应该是字体包没有下载
 ![](attachment/a06822a94de3c9f3fdf9decc48042ed2.png)
-We need to change the fonts to load locally.
+需要把字体改成从本地加载
 ![](attachment/84b4295d0bf3de14f6e36242d7b4dbad.png)
 
-Search and delete code that references remote fonts.
+搜索引用远程字体的代码删掉。
 `https://fonts.googleapis.com/css2?`  
 `https://fonts.googleapis.com/icon`
 `https://fonts.googleapis.com/css`
 
-Then download the fonts locally. You can find out which files to download by opening the URL that references the fonts, for example this one in the image above:
+然后把字体放到本地，具体下载哪个文件可以打开引用字体的资源地址，比如打开上图中报红的 url
 `https://fonts.googleapis.com/icon?family=Material+Icons`
+
 ```
 /* fallback */
 @font-face {
@@ -217,11 +210,11 @@ Then download the fonts locally. You can find out which files to download by ope
 ....
 ```
 
-Download the woff2 file to a local directory, I put it in `dart-pad/pkgs/dart_pad/web/font/`. Then put the code in `dart-pad/pkgs/dart_pad/web/styles/styles.scss`:
-
+把上面的 woff2 下载到本地目录中，我放到了 `dart-pad/pkgs/dart_pad/web/font/`下， 然后把代码放到 `dart-pad/pkgs/dart_pad/web/styles/styles.scss` 中
+具体修改如下
 
 ```scss
-// Added code in styles.scss:
+// 以下为 styles.scss 添加的代码
 @font-face {
 font-family: 'Material Icons';
 font-style: normal;
@@ -251,30 +244,32 @@ text-rendering: optimizeLegibility;
 font-feature-settings: 'liga';
 }
 ```
-Restart DartPad, now even offline it can work normally with localized DartPad website.
+
+重启 dartpad，这时候再打开 `http://localhost:8000/` 即使在离线情况下也能正常使用本地化DartPad 网站了。
 ![](attachment/0a8b43e9f2522fbad385228906600d02.png)
 
-If your goal is just to make Dart work offline and you don't need Flutter, then you have achieved your goal! 🎉
+如果你的目标是只让 Dart 完成 本地化，并不需要 Flutter ，那么你的目标达成了。🎉
 
 
-## Localize Flutter
-More modifications are needed to make Flutter work locally, because more resources are needed to render the UI. From the requests in the console you can see some other resources are requested:
+## 本地化Flutter 
+本地化 Flutter 需要的改动更大。因为需要渲染出页面用到的资源更多。从控制台的请求中可以看到还请求了若干资源
 
 ```bash
-# Note the version number in your URL may be different than here  
+# 注意，你的地址中的版本号可能和这里的不一样
 https://storage.googleapis.com/nnbd_artifacts/3.1.2/dart_sdk.js
 https://storage.googleapis.com/nnbd_artifacts/3.1.2/flutter_web.js
 
-# Note the hash value in your URL may be different than here
+# 注意，你的地址中的hash值可能这里的不一样
 https://www.gstatic.com/flutter-canvaskit/9064459a8b0dcd32877107f6002cc429a71659d1/chromium/canvaskit.js
 https://www.gstatic.com/flutter-canvaskit/9064459a8b0dcd32877107f6002cc429a71659d1/chromium/canvaskit.wasm
 https://fonts.gstatic.com/s/roboto/v20/KFOmCnqEu92Fr1Me5WZLCzYlKw.ttf
 
 ```
 ![](attachment/aef5be9b3b935e806cc5590d3cba441f.png)
-We need to modify the code to request these resources locally instead.
-First put the canvas related content locally:
-Modify `dartpad/newdartpad/dart-pad/pkgs/dart_pad/lib/sharing/editor_ui.dart`:
+我们要做的就是把请求上面资源的代码处的请求改成从本地请求。
+###  flutter_canvaskit 放在本地
+先把 `canvas` 相关内容放到 本地
+修改 `dartpad/newdartpad/dart-pad/pkgs/dart_pad/lib/sharing/editor_ui.dart` 中
 
 ``` dart
 static String _createCanvasKitBaseUrl(String engineSha) {
@@ -285,7 +280,7 @@ static String _createCanvasKitBaseUrl(String engineSha) {
 
 ```
 
-Put the `canvaskit.js` and `canvaskit.wasm` seen in the console into `dart-pad/pkgs/dart_pad/web/flutter-canvaskit`. The directory structure is:
+把从控制台中看到的 `canvaskit.js` 和 `canvaskit.wasm` 放到 `dart-pad/pkgs/dart_pad/web/flutter-canvaskit` 中，目录结构如下。其中的哈希值需要根据控制台中返回的地址的变化而变化，可能和本文中的不一样，请注意。
 
 ```
 tree
@@ -298,11 +293,10 @@ flutter-canvaskit
 3 directories, 2 files
 ```
 
-Restart DartPad and see that it now fetches the `canvaskit` files locally. And the preview works normally.
-
+重启 DartPad 看一下，已经改成从本地获取 `canvaskit` 相关文件了。而且预览正常
 ![](attachment/b0b3cbd6fb392795dacabc665f979993.png)
 
-Also put `dart_sdk.js` and `flutter_web.js` locally:
+###  `dart_sdk.js` 和 `flutter_web.js` 放本地
 
 ```
 dart-pad/pkgs/dart_services
@@ -313,10 +307,9 @@ dart-pad/pkgs/dart_services
            └── flutter_web.js
 ```
 
-Since there are static resources, there needs to be a static resource server. These two resources were originally on `storage.googleapis.com`, we can put them under a dedicated static resource server. For simplicity, we manage these two resource files in dart_services and also start the static service in dart_services.
-In `dart_service/pubspec.yaml` add dependency `shelf_static: ^1.1.2`
-In `dart-pad/pkgs/dart_services/lib/server.dart` add support for static resources:
-
+既然有静态资源，那就要有静态资源服务器。这两个资源原来是在 `storage.googleapis.com`  中，我们可以把它放到专有的静态资源服务器下，为了方便，我们把这俩资源文件放到 dart_services 中管理，并在 dart_services 顺便启动静态服务。
+在 `dart_service/pubspec.yaml` 中添加依赖  `shelf_static: ^1.1.2`
+在 `dart-pad/pkgs/dart_services/lib/server.dart` 中添加对静态资源的支持
 
 ```dart
 EndpointsServer._(String? redisServerUri, Sdk sdk) {
@@ -339,38 +332,42 @@ EndpointsServer._(String? redisServerUri, Sdk sdk) {
   }
 ```
 
-Restart and you can see the Flutter program rendering normally. But there is still one resource being requested from `font.gstatic.com`. We change that to request from our local server in `dart_sdk.js`.
+### Flutter 字体放本地
+重启后可以看到Flutter程序能正常渲染出来。但是还剩一个需要从`font.gstatic.com`。我们去 dart_sdk.js 中把它改成从我们本地服务器获取。
 
-![](attachment/701b9358c7f5267e767e48c0b42cab51.png)
+![](attachment/6dc565d521857b3f95deb921f55b8ce3.png)
 
-Open the local `dart_sdk.js` file and find:
+打开本地的 `dart_sdk.js` 文件，找到
+
 ```js
 /*_engine._robotoUrl*/get _robotoUrl() {
       return "https://fonts.gstatic.com/s/roboto/v20/KFOmCnqEu92Fr1Me5WZLCzYlKw.ttf";
     },
 ```
 
-Change to:
+改成
+
 ```js
 /*_engine._robotoUrl*/get _robotoUrl() {
       return "../font/KFOmCnqEu92Fr1Me5WZLCzYlKw.ttf";
     },
 ```
-put `KFOmCnqEu92Fr1Me5WZLCzYlKw.ttf` in `dart-pad/pkgs/dart_pad/web/font` 。
+把 `KFOmCnqEu92Fr1Me5WZLCzYlKw.ttf` f放到 `dart-pad/pkgs/dart_pad/web/font` 中。
 
 
-Restart `dart_pad` and `dart_service`, disconnect internet, then open `http://localhost:8000/`. Now Flutter can preview normally when offline.
+重启 `dart_pad` 和 `dart_service`，**断网**，然后打开 `http://localhost:8000/` 这时 Flutter 也可以正常预览了
 
-## Github sample
-If you want to also put Github samples locally, or other code locally, you can refer to this section.
+## Github sample 放本地
+如果需要把 Gthub sample 也放到本地，或者其他的代码放到本地，可以参考这一小节
 
 ```dart
-/// Open pkgs/dart_pad/lib/sharing/gists.dart
-/// Modify _gistApiUrl as follows: 
+/// 打开 pkgs/dart_pad/lib/sharing/gists.dart
+/// 修改 _gistApiUrl 如下
 static const String _gistApiUrl = './gists';
 ```
 
-put gist code here ``
+把 代码放到如下位置
+
 ```
 dart-pad/pkgs/dart_pad/web/
 ├── gists
@@ -391,15 +388,14 @@ dart-pad/pkgs/dart_pad/web/
 ```
 
 
-Now, Dartpad can be run completely locally without the need for internet connection.
+至此，Dartpad 可以完全在本地运行了
+
 ![](attachment/3634b2f7b5b0396b527e70b20244c5fc.png)
 
+## 使用dartpad-local
 
-
-## Using dartpad-local
-
-There are many modifications made. I have uploaded the modified version to https://github.com/frankfancode/dartpad-local
-Except for the hash names of resources in flutter-canvaskit that need to be modified according to the local situation. You can use it by executing the following command.
+全部修改较多，我把修改后的版本放到了 https://github.com/frankfancode/dartpad-local
+除了 `flutter-canvaskit` 中资源的哈希名字需要根据本地情况进行修改外。执行以下命令即可使用。
 
 ```bash
 # start dart_pad
@@ -416,13 +412,8 @@ FLUTTER_CHANNEL="stable" DART_SERVVICE_HOST_PATH="http://127.0.0.1:8082" dart to
 
 ```
 
+## 最后
+如有问题，请联系我
 
-## Lastly
-If there are any issues, please contact me.
-
-
-
-
-## Ref
+## 参考资料
 [How to create a custom DartPad?] (https://medium.com/flutter-clan/how-to-create-a-custom-dartpad-b903939df94c)
-
