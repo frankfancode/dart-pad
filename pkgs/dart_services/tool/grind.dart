@@ -52,6 +52,16 @@ Future<void> serve() async {
   ]);
 }
 
+Future<void> run() async {
+  await _run(Platform.executable, arguments: [
+    path.join('bin', 'server.dart'),
+    '--channel',
+    _channel,
+    '--port',
+    '8082',
+  ]);
+}
+
 const _dartImageName = 'dart';
 final _dockerVersionMatcher = RegExp('^FROM $_dartImageName:(.*)\$');
 const _dockerFileNames = [
