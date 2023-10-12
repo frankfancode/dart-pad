@@ -20,6 +20,7 @@ dependencies:
   resp_client: ^1.2.0
   shelf: ^1.4.1
   shelf_router: ^1.1.4
+  shelf_static: ^1.1.2
   yaml: ^3.1.2
 
 dev_dependencies:

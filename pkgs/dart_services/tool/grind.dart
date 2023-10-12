@@ -52,6 +52,7 @@ Future<void> serve() async {
   ]);
 }
 
+@Task()
 Future<void> run() async {
   await _run(Platform.executable, arguments: [
     path.join('bin', 'server.dart'),

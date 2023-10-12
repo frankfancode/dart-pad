@@ -305,7 +305,7 @@ abstract class EditorUi {
   }
 
   static String _createCanvasKitBaseUrl(String engineSha) {
-    const baseUrl = 'https://www.gstatic.com/flutter-canvaskit/';
+    const baseUrl = '../flutter-canvaskit/';
     return path.join(baseUrl, '$engineSha/');
   }
 

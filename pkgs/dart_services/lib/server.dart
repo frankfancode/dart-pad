@@ -7,8 +7,10 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:logging/logging.dart';
+import 'package:path/path.dart' as path;
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf;
+import 'package:shelf_static/shelf_static.dart';
 
 import 'src/common_server_api.dart';
 import 'src/common_server_impl.dart';
@@ -130,11 +132,18 @@ class EndpointsServer {
     );
     GitHubOAuthHandler.addRoutes(commonServerApi.router);
 
+    final staticResoucePath =
+        path.join(Directory.current.path, 'static_resource');
+    final staticHandler =
+        createStaticHandler(staticResoucePath, listDirectories: true);
+
     pipeline = const Pipeline()
         .addMiddleware(logRequestsToLogger(_logger))
         .addMiddleware(createCustomCorsHeadersMiddleware());
 
-    handler = pipeline.addHandler(commonServerApi.router.call);
+    final cascade = Cascade();
+    handler = pipeline.addHandler(
+        cascade.add(staticHandler).add(commonServerApi.router.call).handler);
   }
 
   Future<void> init() => _commonServerImpl.init();

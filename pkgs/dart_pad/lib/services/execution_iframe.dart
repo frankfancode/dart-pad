@@ -30,7 +30,6 @@ class ExecutionServiceIFrame implements ExecutionService {
       throw StateError('invalid iframe src');
     }
     _frameSrc = src;
-
     _initListener();
   }
 
@@ -212,6 +211,7 @@ require(["dartpad_main", "dart_sdk"], function(dartpad_main, dart_sdk) {
       'command': command,
       ...params,
     };
+    print('object $params');
     _frame.contentWindow!.postMessage(message, '*');
     return Future.value();
   }

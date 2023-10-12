@@ -221,10 +221,10 @@ class Compiler {
         // statement injects a name into the module definition.
         final processedJs = (await mainJs.readAsString())
             .replaceFirst('define([', "define('dartpad_main', [");
-
+        final serviceHostPath = Platform.environment['DART_SERVVICE_HOST_PATH'];
         final results = DDCCompilationResults(
           compiledJS: processedJs,
-          modulesBaseUrl: 'https://storage.googleapis.com/nnbd_artifacts'
+          modulesBaseUrl: '$serviceHostPath/nnbd_artifacts'
               '/${_sdk.versionFull}/',
         );
         return results;
