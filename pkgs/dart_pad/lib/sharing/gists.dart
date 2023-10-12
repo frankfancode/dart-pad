@@ -103,7 +103,7 @@ class GistLoaderException implements Exception {
 /// A class to load and save gists. Gists can optionally be modified after
 /// loading and before saving.
 class GistLoader {
-  static const String _gistApiUrl = 'https://api.github.com/gists';
+  static const String _gistApiUrl = './gists';
   static const String _repoContentsAuthority = 'api.github.com';
   static const String _metadataFilename = 'dartpad_metadata.yaml';
 
